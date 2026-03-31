@@ -14,7 +14,7 @@ import argparse
 # Get configuration from environment
 ACMOJ_TOKEN = os.environ.get('ACMOJ_TOKEN', '')
 ACMOJ_PROBLEM_ID = os.environ.get('ACMOJ_PROBLEM_ID', '2532')
-ACMOJ_API_BASE = 'https://acm.sjtu.edu.cn/OnlineJudge'
+ACMOJ_API_BASE = 'https://acm.sjtu.edu.cn'
 
 def get_git_remote_url():
     """Get the current git repository URL"""
@@ -63,12 +63,41 @@ def submit_solution(repo_url=None):
     }
 
     try:
-        response = requests.post(
-            f'{ACMOJ_API_BASE}/api/problem/{ACMOJ_PROBLEM_ID}/submit',
-            headers=headers,
-            json=data,
-            timeout=30
-        )
+        # Try multiple authentication methods
+        auth_attempts = [
+            ('X-API-Key', f'{ACMOJ_TOKEN}'),
+            ('Authorization', f'Bearer {ACMOJ_TOKEN}'),
+            ('Authorization', f'Token {ACMOJ_TOKEN}'),
+            ('X-Auth-Token', f'{ACMOJ_TOKEN}'),
+        ]
+
+        for header_name, header_value in auth_attempts:
+            headers_attempt = headers.copy()
+            headers_attempt[header_name] = header_value
+
+            response = requests.post(
+                f'{ACMOJ_API_BASE}/api/oj/submit',
+                headers=headers_attempt,
+                json=data,
+                timeout=30,
+                allow_redirects=False
+            )
+
+            # If we don't get a redirect or 401, this might be the right auth method
+            if response.status_code not in [302, 401, 403]:
+                break
+
+        # If all attempts failed with redirects, try including token in body
+        if response.status_code in [302, 401, 403]:
+            data_with_token = data.copy()
+            data_with_token['token'] = ACMOJ_TOKEN
+            response = requests.post(
+                f'{ACMOJ_API_BASE}/api/oj/submit',
+                headers={'Content-Type': 'application/json'},
+                json=data_with_token,
+                timeout=30,
+                allow_redirects=False
+            )
 
         if response.status_code == 200:
             result = response.json()
