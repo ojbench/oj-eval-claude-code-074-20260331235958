@@ -14,7 +14,7 @@ import argparse
 # Get configuration from environment
 ACMOJ_TOKEN = os.environ.get('ACMOJ_TOKEN', '')
 ACMOJ_PROBLEM_ID = os.environ.get('ACMOJ_PROBLEM_ID', '2532')
-ACMOJ_API_BASE = 'https://acm.sjtu.edu.cn/OnlineJudge/api'
+ACMOJ_API_BASE = 'https://acm.sjtu.edu.cn/OnlineJudge'
 
 def get_git_remote_url():
     """Get the current git repository URL"""
@@ -30,7 +30,7 @@ def get_git_remote_url():
             if len(parts) == 2:
                 protocol_part = parts[0].split('://')
                 if len(protocol_part) == 2:
-                    url = f"{protocol_part[0]}://github.com/{parts[1]}"
+                    url = f"{protocol_part[0]}://{parts[1]}"
         return url
     except subprocess.CalledProcessError as e:
         print(f"Error getting git remote URL: {e}")
@@ -64,7 +64,7 @@ def submit_solution(repo_url=None):
 
     try:
         response = requests.post(
-            f'{ACMOJ_API_BASE}/submit',
+            f'{ACMOJ_API_BASE}/api/problem/{ACMOJ_PROBLEM_ID}/submit',
             headers=headers,
             json=data,
             timeout=30
